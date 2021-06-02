@@ -97,7 +97,7 @@ true_params_df <- tibble(mu = mu_truth, tau = tau_truth)
 prior_df <- tibble(
   mu = mu_tau_point_mat[, 1], 
   tau = mu_tau_point_mat[, 2], 
-  N_dens = dnorm(x = mu, mean = mu_0, sd = sqrt(1 / lambda_0 / tau)), # muの事前分布
+  N_dens = dnorm(x = mu, mean = mu_0, sd = sqrt(1 / (lambda_0 * tau + 1e-7))), # muの事前分布
   Gam_dens = dgamma(x = tau, shape = a_0, rate = b_0), # tauの事前分布
   density = N_dens * Gam_dens
 )
@@ -128,7 +128,7 @@ b_hat <- b_0 + 0.5 * (sum(x_n^2) + lambda_0 * mu_0^2 - lambda_hat * mu_hat^2)
 true_posterior_df <- tibble(
   mu = mu_tau_point_mat[, 1], 
   tau = mu_tau_point_mat[, 2], 
-  N_dens = dnorm(x = mu, mean = mu_hat, sd = sqrt(1 / lambda_hat / tau)), # muの真の事後分布
+  N_dens = dnorm(x = mu, mean = mu_hat, sd = sqrt(1 / (lambda_hat * tau + 1e-7))), # muの真の事後分布
   Gam_dens = dgamma(x = tau, shape = a_hat, rate = b_hat), # tauの真の事後分布
   density = N_dens * Gam_dens
 )
@@ -191,10 +191,10 @@ trace_a_i      <- rep(0, MaxIter * 2 + 1)
 trace_b_i      <- rep(0, MaxIter * 2 + 1)
 
 # 初期値を記録
-trace_mu_i[1]     <- mu_0
-trace_lambda_i[1] <- lambda_0
-trace_a_i[1]      <- a_0
-trace_b_i[1]      <- b_0
+trace_mu_i[1]     <- mu_N
+trace_lambda_i[1] <- lambda_N
+trace_a_i[1]      <- a_N
+trace_b_i[1]      <- b_N
 
 # 変分推論
 for(i in 1:MaxIter) {
@@ -210,14 +210,14 @@ for(i in 1:MaxIter) {
   trace_b_i[i * 2]      <- b_N
   
   
-  # lambdaの近似事後分布のパラメータを計算:式(10.29)(10.30)
+  # tauの近似事後分布のパラメータを計算:式(10.29)(10.30)
   a_N <- a_0 + 0.5 * (N + 1)
   term_x <- 0.5 * (lambda_0 * mu_0^2 + sum(x_n^2))
-  term_mu2 <- 0.5 * (lambda_0 + N) * mu_N^2 + 1 / lambda_N
+  term_mu2 <- 0.5 * (lambda_0 + N) * (mu_N^2 + 1 / lambda_N)
   term_mu <- (lambda_0 * mu_0 + sum(x_n)) * mu_N
   b_N <- b_0 + term_x + term_mu2 - term_mu
   
-  # i回目のlambdaの近似事後分布の更新後の結果を記録
+  # i回目のtauの近似事後分布の更新後の結果を記録
   trace_mu_i[i * 2 + 1]     <- mu_N
   trace_lambda_i[i * 2 + 1] <- lambda_N
   trace_a_i[i * 2 + 1]      <- a_N
@@ -231,10 +231,11 @@ for(i in 1:MaxIter) {
 ### 推論結果の確認 -----
 
 # 同時近似事後分布を計算
+E_tau <- a_N / b_N # tauの期待値
 posterior_df <- tibble(
   mu = mu_tau_point_mat[, 1], 
   tau = mu_tau_point_mat[, 2], 
-  N_dens = dnorm(x = mu, mean = mu_N, sd = sqrt(1 / (lambda_N * b_N / a_N * tau))), # muの近似事後分布
+  N_dens = dnorm(x = mu, mean = mu_N, sd = sqrt(1 / (lambda_N / E_tau * tau + 1e-7))), # muの近似事後分布
   Gam_dens = dgamma(x = tau, shape = a_N, rate = b_N), # tauの近似事後分布
   density = N_dens * Gam_dens
 )
@@ -248,8 +249,10 @@ ggplot() +
              color = "red", shape = 4, size = 5) + # 真の値
   labs(title = "Gaussian-Gamma Distribution", 
        subtitle = paste0("N=", N, 
-                         ", mu_N=", round(mu_N, 1), ", lambda_N / E[tau]=", lambda_N * b_N / a_N, 
-                         ", a_N=", a_N, ", b_N=", round(b_N, 1)), 
+                         ", mu_N=", round(mu_N, 1), 
+                         ", lambda_N / E[tau]=", round(lambda_N / E_tau, 1), 
+                         ", a_N=", a_N, 
+                         ", b_N=", round(b_N, 1)), 
        x = expression(mu), y = expression(tau))
 
 
@@ -343,13 +346,14 @@ trace_posterior_df <- tibble()
 for(i in 1:(MaxIter * 2 + 1)) {
   
   # i回目の近似事後分布を計算
+  E_tau <- trace_a_i[i] / trace_b_i[i] # tauの期待値
   tmp_posterior_df <- tibble(
     mu = mu_tau_point_mat[, 1], 
     tau = mu_tau_point_mat[, 2], 
     N_dens = dnorm(
       x = mu, 
       mean = trace_mu_i[i], 
-      sd = sqrt(1 / (trace_lambda_i[i] * trace_b_i[i] / trace_a_i[i] * tau))
+      sd = sqrt(1 / (trace_lambda_i[i] / E_tau * tau + 1e-7))
     ), # muの近似事後分布
     Gam_dens = dgamma(x = tau, shape = trace_a_i[i], rate = trace_b_i[i]), # tauの近似事後分布
     density = N_dens * Gam_dens, 
