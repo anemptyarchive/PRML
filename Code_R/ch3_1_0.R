@@ -143,7 +143,7 @@ ggplot(res_df, aes(x = x, y = y, color = label)) +
 
 # ロジスティックシグモイド関数を作成
 sigma <- function(x) {
-  y = 1 / (1 + exp(-x))
+  y <- 1 / (1 + exp(-x))
 }
 
 # シグモイド基底関数を作成
