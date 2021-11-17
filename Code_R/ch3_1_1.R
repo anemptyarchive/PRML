@@ -1,5 +1,5 @@
 
-# 3.1.1：最尤推定と最小二乗法 --------------------------------------------------------
+# ch3.1.1：最尤推定と最小二乗法 --------------------------------------------------------
 
 # 利用するパッケージ
 library(tidyverse)
@@ -177,7 +177,7 @@ beta_hat <- 1 / sigma2_hat
 
 # 推定したパラメータによるモデルを計算
 ml_df <- tidyr::tibble(
-  x = seq(0, 1, 0.01), # x軸の値
+  x = x_vec, # x軸の値
   t = t(w_hat_m) %*% t(Phi(x, M)) %>% 
     as.vector(), # y軸の値
   minus_sigma = t - 2 * sqrt(sigma2_hat), # μ - 2σ
@@ -192,7 +192,7 @@ ggplot() +
               fill = "cyan4", alpha = 0.1, color = "cyan4", linetype = "dotted") + # 真のノイズ範囲
   geom_line(data = ml_df, aes(x = x, y = t), color = "blue") + # 推定したモデル
   geom_ribbon(data = ml_df, aes(x = x, ymin = minus_sigma, ymax = plus_sigma), 
-              fill = "blue", alpha = 0.1, color = "blue", linetype = "dotted") + # 推定したノイズの範囲
+              fill = "blue", alpha = 0.1, color = "blue", linetype = "dotted") + # 推定したノイズ範囲
   #ylim(c(-5, 5)) + 
   labs(title = "Linear Basis Function Model", 
        subtitle = paste0("N=", N, ", M=", M, ", beta=", round(beta_hat, 2)), 
