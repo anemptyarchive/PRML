@@ -36,11 +36,11 @@ ggplot(norm_df, aes(x = w_1, y = w_2, z = Lq_norm, color = ..level..)) +
 E_df <- tidyr::tibble(
   w_1 = rep(w_vec, times = length(w_vec)), # w1の値
   w_2 = rep(w_vec, each = length(w_vec)), # w2の値
-  E_w = (abs(w_1)^q + abs(w_2)^q) / q # 正則化項
+  E_W = (abs(w_1)^q + abs(w_2)^q) / q # 正則化項
 )
 
 # 正則化項の等高線図を作成
-ggplot(E_df, aes(x = w_1, y = w_2, z = E_w, color = ..level..)) + 
+ggplot(E_df, aes(x = w_1, y = w_2, z = E_W, color = ..level..)) + 
   #geom_contour() + # 等高線グラフ
   geom_contour(breaks = 1.0) + # 等高線グラフ:(値を指定)
   coord_fixed(ratio = 1) + # アスペクト比

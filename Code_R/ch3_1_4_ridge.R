@@ -110,8 +110,8 @@ E_df <- tidyr::tibble(
 
 # 二乗和誤差関数の等高線図を作成
 ggplot(E_df, aes(x = w_1, y = w_2)) + 
-  geom_contour_filled(aes(x = w_1, y = w_2, z = E_D, fill = ..level..), alpha = 0.7) + # 二乗和誤差関数:(塗りつぶし)
-  #geom_contour(aes(z = E_D), color = "blue") + # 二乗和誤差関数:(等高線)
+  geom_contour_filled(aes(z = E_D, fill = ..level..), alpha = 0.7) + # 二乗和誤差関数:(塗りつぶし)
+  #geom_contour(aes(z = E_D, color = ..level..)) + # 二乗和誤差関数:(等高線)
   coord_fixed(ratio = 1) + # アスペクト比
   labs(title = expression(E[D](w)), 
        subtitle = paste0("q=", q), 
@@ -119,8 +119,8 @@ ggplot(E_df, aes(x = w_1, y = w_2)) +
 
 # 正則化項の等高線図を作成
 ggplot(E_df, aes(x = w_1, y = w_2)) + 
-  geom_contour_filled(aes(x = w_1, y = w_2, z = E_W, fill = ..level..), alpha = 0.7) + # 正則化項:(塗りつぶし)
-  #geom_contour(aes(z = E_W), color = "red") + # 正則化項:(等高線)
+  geom_contour_filled(aes(z = E_W, fill = ..level..), alpha = 0.7) + # 正則化項:(塗りつぶし)
+  #geom_contour(aes(z = E_W, color = ..level..)) + # 正則化項:(等高線)
   coord_fixed(ratio = 1) + # アスペクト比
   labs(title = expression(E[W](w)), 
        subtitle = paste0("q=", q), 
@@ -176,7 +176,11 @@ ggplot(E_df, aes(x = w_1, y = w_2)) +
        x = expression(w[1]), y = expression(w[2]), fill = expression(E(w)))
 
 
-### lambdaと最尤解の関係 ----
+### lambdaと最尤解の関係をアニメーションで確認 ----
+
+# 追加パッケージ
+library(gganimate)
+
 
 # 正則化係数の最大値を指定
 lambda_max <- 100
