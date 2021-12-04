@@ -20,7 +20,6 @@ ggplot(sigmoid_df, aes(x = a, y = sigma)) +
        y = expression(sigma))
 
 
-
 ### 対称性 -----
 
 # シグモイド関数を作成
@@ -55,6 +54,22 @@ ggplot(sigmoid_df, aes(x = a, y = sigma)) +
   labs(title = "Logistic Sigmoid Function", 
        subtitle = paste0("a=", a), 
        x = "x", y = "y")
+
+
+### 微分 -----
+
+# ロジスティックシグモイド関数を計算
+sigmoid_df <- tidyr::tibble(
+  x = seq(-10, 10, by = 0.05), # 入力の範囲を指定
+  y = 1 / (1 + exp(-x)), # 出力
+  dy = y * (1 - y) # 微分
+) %>% 
+  tidyr::pivot_longer(cols = !x, names_to = "type", values_to = "value") #  縦長のデータフレームに変換
+
+# ロジスティックシグモイド関数を作図
+ggplot(sigmoid_df, aes(x = x, y = value, color = type)) + 
+  geom_line() + 
+  labs(title = "Logistic Sigmoid Function")
 
 
 # ・ロジット関数 -----------------------------------------------------------------
