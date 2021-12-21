@@ -4,6 +4,8 @@
 # 利用するパッケージ
 library(tidyverse)
 
+# ch3_1_4_ridge.R, ch3_1_4_lasso.Rでも利用
+
 
 ### モデルの設定 -----
 
@@ -20,7 +22,7 @@ x_min <- 0
 x_max <- 1
 
 # 作図用のxの値を作成
-x_vec <- seq(x_min, x_max, by = 0.01)
+x_vals <- seq(x_min, x_max, by = 0.01)
 
 
 # 真の精度パラメータを指定
@@ -33,8 +35,8 @@ sigma_true
 
 # 真のモデルを計算
 model_df <- tidyr::tibble(
-  x = x_vec, # x軸の値
-  y = y_true(x), # y軸の値
+  x = x_vals, # x軸の値
+  y = y_true(x_vals), # y軸の値
   minus_sigma = y - 2 * sigma_true, # μ - 2σ
   plus_sigma = y + 2 * sigma_true # μ + 2σ
 )
@@ -169,7 +171,7 @@ w_ml_m <- solve(t(phi_x_nm) %*% phi_x_nm) %*% t(phi_x_nm) %*% t_n %>%
   as.vector()
 
 # 分散パラメータの最尤推定量を計算
-sigma2_ml <- sum((t_n - t(w_ml_m) %*% t(phi_x_nm))^2) / N
+sigma2_ml <- sum((t_n - phi_x_nm %*% w_ml_m)^2) / N
 
 # 精度パラメータの最尤推定量を計算
 beta_ml <- 1 / sigma2_ml
@@ -177,8 +179,8 @@ beta_ml <- 1 / sigma2_ml
 
 # 推定したパラメータによるモデルを計算
 ml_df <- tidyr::tibble(
-  x = x_vec, # x軸の値
-  t = t(w_ml_m) %*% t(Phi(x, M)) %>% 
+  x = x_vals, # x軸の値
+  t = Phi(x_vals, M) %*% w_ml_m %>% 
     as.vector(), # y軸の値
   minus_sigma = t - 2 * sqrt(sigma2_ml), # μ - 2σ
   plus_sigma = t + 2 * sqrt(sigma2_ml) # μ + 2σ
@@ -193,19 +195,20 @@ ggplot() +
   geom_line(data = ml_df, aes(x = x, y = t), color = "blue") + # 推定したモデル
   geom_ribbon(data = ml_df, aes(x = x, ymin = minus_sigma, ymax = plus_sigma), 
               fill = "blue", alpha = 0.1, color = "blue", linetype = "dotted") + # 推定したノイズ範囲
-  #ylim(c(-5, 5)) + 
+  #ylim(c(-5, 5)) + # y軸の表示範囲
   labs(title = "Linear Basis Function Model", 
-       subtitle = paste0("N=", N, ", M=", M, ", beta=", round(beta_ml, 2)), 
+       subtitle = paste0("N=", N, ", M=", M, ", beta=", round(beta_ml, 2), 
+                         ", w=(", paste0(round(w_ml_m, 2), collapse = ", "), ")"), 
        x = "x", y = "t")
 
 
 ### 基底関数と重みの関係 -----
 
 # M個の基底関数を計算
-phi_df <- Phi(x_vec, M) %>% # 基底関数
+phi_df <- Phi(x_vals, M) %>% # 基底関数
   dplyr::as_tibble(.name_repair = "unique") %>% # データフレームに変換
   dplyr::rename_with(.fn = ~paste0("m=", 0:(M-1)), .cols = 1:M) %>% # 列名を付与
-  cbind(x = x_vec) %>% # x軸の値を結合
+  cbind(x = x_vals) %>% # x軸の値を結合
   tidyr::pivot_longer(
     cols = -x, names_to = "phi", names_transform = list(phi = as.factor), values_to = "phi_x"
   ) # long型に変換
@@ -220,10 +223,10 @@ ggplot() +
 
 
 # M個の基底関数を重み付け
-phi_w_df <- t(w_ml_m * t(Phi(x_vec, M))) %>% # 基底関数ごとに重み付け
+phi_w_df <- t(w_ml_m * t(Phi(x_vals, M))) %>% # 基底関数ごとに重み付け
   dplyr::as_tibble(.name_repair = "unique") %>% # データフレームに変換
   dplyr::rename_with(.fn = ~paste0("m=", 0:(M-1)), .cols = 1:M) %>% # 列名を付与
-  cbind(x = x_vec) %>% # x軸の値を結合
+  cbind(x = x_vals) %>% # x軸の値を結合
   tidyr::pivot_longer(
     cols = -x, names_to = "phi", names_transform = list(phi = as.factor), values_to = "phi_x"
   ) # long型に変換
@@ -234,8 +237,8 @@ ggplot() +
   geom_line(data = ml_df, aes(x = x, y = t), color = "blue", size = 1) + # 推定したモデル
   geom_line(data = phi_w_df, aes(x = x, y = phi_x, color = phi), 
             linetype = "dashed", size = 1) + # 基底関数
-  #ylim(c(-3, 3)) + 
-  labs(title = expression(t == sum(w[m] * phi[m](x), m==0, M-1)), 
+  #ylim(c(-3, 3)) + # y軸の表示範囲
+  labs(title = expression(t == sum(w[m] * phi[m](x), m == 0, M-1)), 
        subtitle = paste0("w=(", paste0(round(w_ml_m, 2), collapse = ", "), ")"), 
        x = "x", y = "t", color = expression(phi[m](x)))
 

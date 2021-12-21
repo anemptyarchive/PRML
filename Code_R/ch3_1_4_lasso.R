@@ -301,7 +301,7 @@ for(i in 1:max_iter) {
 w_ml_m <- solve(t(phi_x_nm) %*% phi_x_nm) %*% t(phi_x_nm) %*% t_n %>% 
   as.vector()
 
-# 重みパラメータをデータフレームに格納
+# 重みパラメータを格納
 w_df <- tidyr::tibble(
   w_1 = c(w_lasso_m[1], w_ml_m[1]), # x軸の値
   w_2 = c(w_lasso_m[2], w_ml_m[2]), # y軸の値
@@ -378,7 +378,7 @@ for(lambda in lambda_vals) {
       # 分子の項を計算
       S <- sum((t_n - phi_x_nm %*% w_lasso_m) * phi_x_nm[, m])
       
-      # ラッソ回帰の重みパラメータの最尤解を計算
+      # 重みパラメータの最尤解を計算
       w_lasso_m[m] <- soft_thresholding(S, lambda, phi_x_nm[, m])
     }
   }
@@ -388,17 +388,18 @@ for(lambda in lambda_vals) {
   E_W_val <- sum(abs(w_lasso_m)^q) # 正則化項
   
   # アニメーション用のラベルを作成
-  label <- paste0(
+  label_txt <- paste0(
     "lambda=", lambda, ", E=", round(E_D_val + lambda * E_W_val, 2), 
-    ", E_D=", round(E_D_val, 2), ", E_W=", round(E_W_val, 2)
+    ", E_D=", round(E_D_val, 2), ", E_W=", round(E_W_val, 2), 
+    ", w=(", paste0(round(w_lasso_m, 2), collapse = ", "), ")"
   )
   
-  # 推定したパラメータをデータフレームに格納
+  # 推定したパラメータを格納
   tmp_w_df <- tidyr::tibble(
     w_1 = c(w_lasso_m[1], w_ml_m[1]), # x軸の値
     w_2 = c(w_lasso_m[2], w_ml_m[2]), # y軸の値
     method = factor(c("lasso", "ml"), levels = c(c("lasso", "ml"))), # ラベル
-    label = as.factor(label) # フレーム切替用のラベル
+    label = as.factor(label_txt) # フレーム切替用のラベル
   )
   
   # 結果を結合
@@ -408,28 +409,32 @@ for(lambda in lambda_vals) {
   anime_E_D_df <- hd_E_df %>% 
     dplyr::select(w_1, w_2, E_D) %>% # 利用する列を抽出
     dplyr::mutate(
-      E_D = dplyr::if_else(round(E_D, 2) == round(E_D_val, 2), true = round(E_D_val, 2), false = 0)
+      E_D = dplyr::if_else(
+        round(E_D, 2) == round(E_D_val, 2), true = round(E_D_val, 2), false = 0
+      )
     ) %>% # 接線となる誤差項の点以外を0に置換
-    cbind(label = as.factor(label)) %>% # フレーム切替用のラベル列を追加
-    rbind(anime_E_D_df, .) %>%  # 結合
+    cbind(label = as.factor(label_txt)) %>% # フレーム切替用のラベル列を追加
+    rbind(anime_E_D_df, .) %>%  # 結果を結合
     dplyr::filter(E_D > 0) # 接線となる誤差項の点を抽出:(最後でないと接線となる点がなかった時にエラーになる)
   
   # 接線となる正則化項の等高線を抽出
   anime_E_W_df <- hd_E_df %>% 
     dplyr::select(w_1, w_2, E_W) %>% # 利用する列を抽出
     dplyr::mutate(
-      E_W = dplyr::if_else(round(E_W, 2) == round(E_W_val, 2), true = round(E_W_val, 2), false = 0)
+      E_W = dplyr::if_else(
+        round(E_W, 2) == round(E_W_val, 2), true = round(E_W_val, 2), false = 0
+      )
     ) %>% # 接線となる正則化項の点以外を0に置換
-    cbind(label = as.factor(label)) %>% # フレーム切替用のラベル列を追加
+    cbind(label = as.factor(label_txt)) %>% # フレーム切替用のラベル列を追加
     rbind(anime_E_W_df, .) %>% # 結合
     dplyr::filter(E_W > 0) # 接線となる正則化項の点を抽出:(最後でないと接線となる点がなかった時にエラーになる)
   
   # アニメーション用に複製
   anime_E_df <- E_df %>% 
-    dplyr::mutate(E = E_D + lambda * E_W) %>% 
+    dplyr::mutate(E = E_D + lambda * E_W) %>% # 誤差を計算
     #dplyr::select(w_1, w_2, E) %>% # 使用する列を抽出
-    cbind(label = as.factor(label)) %>% # フレーム切替用のラベル列を追加
-    rbind(anime_E_df, .) # 結合
+    cbind(label = as.factor(label_txt)) %>% # フレーム切替用のラベル列を追加
+    rbind(anime_E_df, .) # 結果を結合
   
   # 途中経過を表示
   message("\r", rep(" ", 30), appendLF = FALSE) # 前回のメッセージを初期化
